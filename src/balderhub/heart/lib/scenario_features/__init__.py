@@ -1,6 +1,7 @@
-# TODO add classes / functions from module (if any)
-# TODO delete module if it has no sub elements
+from .heart_beat_feature import HeartBeatFeature
+from .strap_docking_feature import StrapDockingFeature
 
 __all__ = [
-
+    'HeartBeatFeature',
+    'StrapDockingFeature'
 ]
