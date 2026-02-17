@@ -1,6 +1,5 @@
-# TODO add classes / functions from module (if any)
-# TODO delete module if it has no sub elements
+from .optical_heart_beat_feature import OpticalHeartBeatFeature
 
 __all__ = [
-
+    'OpticalHeartBeatFeature',
 ]
