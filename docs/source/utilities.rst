@@ -8,6 +8,14 @@ This section shows general objects and helper functions that are used with this 
     This BalderHub project doesn't have any utilities.
 
 
-.. todo add your scenarios with .. autoclass
-    .. autoclass:: balderhub.heart.lib.utilities.MyExampleUtility
-        :members:
+Optical Heart Beat Simulation
+=============================
+
+.. autoclass:: balderhub.heart.lib.utils.optical_simulation.TkinterOpticalHeartBeatSimulation
+    :members:
+
+.. autoclass:: balderhub.heart.lib.utils.optical_simulation.Command
+    :members:
+
+.. autoclass:: balderhub.heart.lib.utils.optical_simulation.ColorConfiguration
+    :members:

@@ -11,10 +11,11 @@ Scenario Features
 .. note::
     This package does not provide any scenario features
 
-.. todo add your features with .. autoclass
-    .. autoclass:: balderhub.heart.lib.scenario_features.MyScenarioFeature
-        :members:
+.. autoclass:: balderhub.heart.lib.scenario_features.HeartBeatFeature
+    :members:
 
+.. autoclass:: balderhub.heart.lib.scenario_features.StrapDockingFeature
+    :members:
 
 Setup Features
 ==============
@@ -22,6 +23,5 @@ Setup Features
 .. note::
     This package does not provide any setup features.
 
-.. todo add your features with .. autoclass
-    .. autoclass:: balderhub.heart.lib.setup_features.MySetupFeature
-        :members:
+.. autoclass:: balderhub.heart.lib.setup_features.OpticalHeartBeatFeature
+    :members:
