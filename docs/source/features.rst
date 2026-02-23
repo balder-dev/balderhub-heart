@@ -29,6 +29,9 @@ Scenario Features
 Setup Features
 ==============
 
+.. autoclass:: balderhub.heart.lib.setup_features.OpticalStrapDockingFeature
+    :members:
+
 
 .. autoclass:: balderhub.heart.lib.setup_features.OpticalHeartBeatFeature
     :members:
