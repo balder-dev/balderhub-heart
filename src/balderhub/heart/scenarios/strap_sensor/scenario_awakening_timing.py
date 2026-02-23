@@ -61,11 +61,9 @@ class ScenarioAwakeningTiming(BaseScenarioEnv):
         test that validates that the sensor will automatically awake as soon as the heart rate sensor is in contact
         with the skin and a valid heart beat is aligned
         """
-        if with_noice is not None:
-            raise NotImplementedError
 
         assert not self.HeartRateSensor.strap.is_attached(), "sensor is already attached"
-        self.HeartRateGiver.heart.start(with_bpm)
+        self.HeartRateGiver.heart.start(with_bpm, with_noice)
 
         # make sure that sensor is not active
         assert not self.HeartRateHost.activity.is_active(), "sensor is already activated before strap was attached"
@@ -87,14 +85,11 @@ class ScenarioAwakeningTiming(BaseScenarioEnv):
             (f"sensor was not awakened within {expected_awakening_time_sec} seconds - it took around "
              f"{active_after_sec} seconds")
 
-    @balder.parametrize('with_noice', [True, False])
-    def test_auto_awake_with_contact_but_without_signal(self, with_noice):
+    def test_auto_awake_with_contact_but_without_signal(self):
         """
         test that validates that the sensor will automatically awake as soon as the heart rate sensor is in contact
         with the skin
         """
-        if with_noice is not None:
-            raise NotImplementedError
 
         assert not self.HeartRateSensor.strap.is_attached(), "sensor is already attached"
         self.HeartRateGiver.heart.stop()

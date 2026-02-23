@@ -10,11 +10,13 @@ logger = logging.getLogger(__name__)
 class HeartBeatFeature(balder.Feature):
     """Base scenario level heart beat feature"""
 
-    def start(self, bpm: float) -> None:
+    def start(self, bpm: float, add_noise_with_snr_of=None) -> None:
         """
         Starts the heart beat simulation
 
         :param bpm: the beats-per-minute that should be applied
+        :param add_noise_with_snr_of: adds noise to the signal with the given SNR in dB or None if no noise should be
+                                      added
         """
         raise NotImplementedError
 

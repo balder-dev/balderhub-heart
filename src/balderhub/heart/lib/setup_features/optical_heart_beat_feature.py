@@ -66,9 +66,12 @@ class OpticalHeartBeatFeature(HeartBeatFeature):
         self._simulator = None
 
 
-    def start(self, bpm: float):
+    def start(self, bpm: float, add_noise_with_snr_of=None) -> None:
         self.simulator.send_command(Command.SET_BPM, bpm=bpm)
         self.simulator.send_command(Command.START)
+
+        if add_noise_with_snr_of is not None:
+            raise NotImplementedError('this is currently not supported')
 
     def stop(self):
         self.simulator.send_command(Command.STOP)
