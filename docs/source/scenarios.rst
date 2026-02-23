@@ -4,11 +4,14 @@ Scenarios
 Scenarios describe **what you need**. They define the tests and the necessary devices for them. Here you can find all
 scenarios that are implemented in this BalderHub package.
 
+Heart-Rate Measurement Strap Scenarios
+======================================
 
-.. note::
-    This BalderHub project doesn't have any scenarios.
+.. autoclass:: balderhub.heart.scenarios.strap_sensor.ScenarioAwakeningTiming
+    :members:
 
+.. autoclass:: balderhub.heart.scenarios.strap_sensor.ScenarioHeartRateCheck
+    :members:
 
-.. todo add your scenarios with .. autoclass
-    .. autoclass:: balderhub.heart.scenarios.ScenarioMyTest
-        :members:
+.. autoclass:: balderhub.heart.scenarios.strap_sensor.ScenarioRRValueCheck
+    :members:
