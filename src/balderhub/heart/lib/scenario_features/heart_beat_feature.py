@@ -13,6 +13,7 @@ class HeartBeatFeature(balder.Feature):
     def start(self, bpm: float) -> None:
         """
         Starts the heart beat simulation
+
         :param bpm: the beats-per-minute that should be applied
         """
         raise NotImplementedError
