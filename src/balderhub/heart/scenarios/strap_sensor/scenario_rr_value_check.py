@@ -49,10 +49,7 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
         :param with_noice: PARAMETRIZED VALUE if a noise should be added (None if no noise should be added, SNR in dB
                            otherwise)
         """
-        if with_noice is not None:
-            raise NotImplementedError
-
-        self.HeartRateGiver.heart.start(bpm=bpm)
+        self.HeartRateGiver.heart.start(bpm=bpm, add_noise_with_snr_of=with_noice)
         try:
             self.HeartRateHost.reader.prepare()
             expected_rr_value_sec = 60 / bpm
@@ -86,8 +83,6 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
         :param with_noice: PARAMETRIZED VALUE if a noise should be added (None if no noise should be added, SNR in dB
                            otherwise)
         """
-        if with_noice is not None:
-            raise NotImplementedError
 
         time_to_wait_when_reached_sec = 30
 
@@ -105,7 +100,7 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
         timeout_sec = self.HeartRateSensor.config.max_rr_change_update_time_sec * 3
 
         start_time = time.perf_counter()
-        self.HeartRateGiver.heart.start(bpm=start_bpm)
+        self.HeartRateGiver.heart.start(bpm=start_bpm, add_noise_with_snr_of=with_noice)
 
         try:
             rr_over_history = []
@@ -126,7 +121,7 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
             time.sleep(time_to_wait_when_reached_sec)
 
             change_time = time.perf_counter()
-            self.HeartRateGiver.heart.start(bpm=end_bpm)
+            self.HeartRateGiver.heart.start(bpm=end_bpm, add_noise_with_snr_of=with_noice)
             while (time.perf_counter() - start_time) < timeout_sec:
                 current_rr_sec = self.HeartRateHost.reader.read_last_rr_value_in_sec()
                 rr_over_history.append((time.perf_counter(), current_rr_sec))
