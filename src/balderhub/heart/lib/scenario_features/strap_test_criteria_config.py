@@ -1,3 +1,4 @@
+from typing import Union
 from balderhub.heart.lib.scenario_features.base_test_criteria_config import BaseTestCriteriaConfig
 
 
@@ -7,9 +8,10 @@ class StrapTestCriteriaConfig(BaseTestCriteriaConfig):
     """
 
     @property
-    def time_to_sleep_after_no_signal(self) -> float:
+    def time_to_sleep_after_no_signal(self) -> Union[float, None]:
         """
-        :return: maximum time device needs to go to sleep if no heart beat signal is active
+        :return: maximum time device needs to go to sleep if no heart beat signal is active or None if the device will
+                 not go asleep if there is no signal anymore (only when there is no skin contact)
         """
         return 10
 
