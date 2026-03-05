@@ -12,8 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class ScenarioAwakeningTiming(BaseScenarioEnv):
-    """Test scenario that validates the timing for going to sleep and awake again depending on heart beat and if the
-    strap is attached"""
+    """
+    Test scenario that validates the timing for awaking again depending on heart beat and if the strap is attached
+    """
 
     class HeartRateGiver(BaseScenarioEnv.HeartRateGiver):
         """simulation device that initiate the hear rate"""
@@ -33,7 +34,7 @@ class ScenarioAwakeningTiming(BaseScenarioEnv):
 
     @balder.fixture('variation')
     def make_sure_device_powered_on(self):
-        """fixture that ensures that device is powered ob before entering the variation"""
+        """fixture that ensures that the device is powered on before entering the variation"""
         yield from self.BatterySim.sim.fixt_make_sure_device_is_powered_on()
 
     @balder.fixture('variation')
@@ -123,17 +124,3 @@ class ScenarioAwakeningTiming(BaseScenarioEnv):
 
         assert active_after_sec <= expected_awakening_time_sec, \
             f"sensor was not awakened within {expected_awakening_time_sec} seconds, it took {active_after_sec} seconds"
-
-        # now check if it will be disabled after `time_to_sleep_after_no_signal`
-        expected_go_to_sleep_time_sec = self.HeartRateSensor.config.time_to_sleep_after_no_signal
-        max_timeout = expected_go_to_sleep_time_sec * 2  # wait max this time to check if
-
-        while time.perf_counter() - start_time < max_timeout:
-            if not self.HeartRateHost.activity.is_active():
-                inactive_after_sec = time.perf_counter() - start_time
-                break
-        else:
-            raise TimeoutError(f'sensor is not go back to sleep within {max_timeout} seconds')
-
-        assert inactive_after_sec <= expected_go_to_sleep_time_sec, \
-            f"sensor was not awakened within {expected_go_to_sleep_time_sec} seconds"

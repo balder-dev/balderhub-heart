@@ -15,3 +15,6 @@ Heart-Rate Measurement Strap Scenarios
 
 .. autoclass:: balderhub.heart.scenarios.strap_sensor.ScenarioRRValueCheck
     :members:
+
+.. autoclass:: balderhub.heart.scenarios.strap_sensor.ScenarioSleepTiming
+    :members:
