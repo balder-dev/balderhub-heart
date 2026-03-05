@@ -125,7 +125,10 @@ class ScenarioHeartRateCheck(BaseScenarioEnv):
                                    f'in reader within {timeout_sec} seconds')
 
             logger.info(f'wait for {time_to_wait_when_reached_sec} seconds to make sure that new BPM stays constant')
-            time.sleep(time_to_wait_when_reached_sec)
+            loop_start_time = time.perf_counter()
+            while (time.perf_counter() - loop_start_time) < time_to_wait_when_reached_sec:
+                current_bpm = self.HeartRateHost.reader.read_last_bpm_value()
+                bpm_over_history.append((time.perf_counter(), current_bpm))
 
             change_time = time.perf_counter()
             self.HeartRateGiver.heart.start(bpm=end_bpm, add_noise_with_snr_of=with_noice)
@@ -148,7 +151,10 @@ class ScenarioHeartRateCheck(BaseScenarioEnv):
                  f"(expectation was below {bpm_setting.max_update_time_sec} seconds)")
 
             logger.info(f'wait for {time_to_wait_when_reached_sec} seconds to make sure that new BPM stays constant')
-            time.sleep(time_to_wait_when_reached_sec)
+            loop_start_time = time.perf_counter()
+            while (time.perf_counter() - loop_start_time) < time_to_wait_when_reached_sec:
+                current_bpm = self.HeartRateHost.reader.read_last_bpm_value()
+                bpm_over_history.append((time.perf_counter(), current_bpm))
 
             # TODO validate history -> should not go down and stay within the allowed range
             constant_with_start_bpm = [
