@@ -1,5 +1,5 @@
 import time
-
+import logging
 import balder
 from balder.connections import DCPowerConnection
 
@@ -7,6 +7,8 @@ from balderhub.heart.lib.scenario_features.rr_value_reader_feature import RRValu
 
 from .base_scenario_env import BaseScenarioEnv
 from ...lib.scenario_features import BaseTestCriteriaConfig
+
+logger = logging.getLogger(__name__)
 
 
 class ScenarioRRValueCheck(BaseScenarioEnv):
@@ -39,6 +41,18 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
         """fixture that ensures that device is powered ob before entering the variation"""
         yield from self.BatterySim.sim.fixt_make_sure_device_is_powered_on()
 
+    @balder.fixture('variation')
+    def heart_started(self, make_sure_has_skin_contact, make_sure_device_powered_on):  # pylint: disable=unused-argument
+        """makes sure that the heart is started before the variation is entered and restores it afterwards"""
+        yield from self.HeartRateGiver.heart.fixt_make_sure_heart_beat_established()
+
+    @balder.fixture('variation')
+    def prepare_reader(self, heart_started):  # pylint: disable=unused-argument
+        """prepares the heart rate rr-value reader feature for checking its activity"""
+        self.HeartRateHost.reader.prepare()
+        yield
+        self.HeartRateHost.reader.cleanup()
+
     @balder.parametrize_by_feature("bpm", (HeartRateSensor, 'config', 'test_accuracy_of_bpms_for'))
     @balder.parametrize_by_feature("with_noice", (HeartRateSensor, 'config', 'test_noise_with_snr_of'))
     def test_normal_heart_rate(self, bpm, with_noice):
@@ -50,23 +64,19 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
                            otherwise)
         """
         self.HeartRateGiver.heart.start(bpm=bpm, add_noise_with_snr_of=with_noice)
-        try:
-            self.HeartRateHost.reader.prepare()
-            expected_rr_value_sec = 60 / bpm
+        expected_rr_value_sec = 60 / bpm
 
-            allowed_dev_percent = self.HeartRateSensor.config.allowed_plusminus_deviation_percent
-            expected_min_rr = expected_rr_value_sec * (1 - allowed_dev_percent)
-            expected_max_rr = expected_rr_value_sec * (1 + allowed_dev_percent)
+        allowed_dev_percent = self.HeartRateSensor.config.allowed_plusminus_deviation_percent
+        expected_min_rr = expected_rr_value_sec * (1 - allowed_dev_percent)
+        expected_max_rr = expected_rr_value_sec * (1 + allowed_dev_percent)
 
-            time.sleep(self.HeartRateSensor.config.max_rr_change_update_time_sec)
-            read_rrvalue = self.HeartRateHost.reader.read_last_rr_value_in_sec()
+        time.sleep(self.HeartRateSensor.config.max_rr_change_update_time_sec)
+        read_rrvalue = self.HeartRateHost.reader.read_last_rr_value_in_sec()
 
-            assert expected_min_rr < read_rrvalue < expected_max_rr, \
-                (f"the updated rr was not established after {self.HeartRateSensor.config.max_rr_change_update_time_sec}"
-                 f" seconds or is not in expected range {expected_rr_value_sec} +/- {allowed_dev_percent * 100:.2f}% "
-                 f"sec (is {read_rrvalue} sec)")
-        finally:
-            self.HeartRateHost.reader.cleanup()
+        assert expected_min_rr < read_rrvalue < expected_max_rr, \
+            (f"the updated rr was not established after {self.HeartRateSensor.config.max_rr_change_update_time_sec}"
+             f" seconds or is not in expected range {expected_rr_value_sec} +/- {allowed_dev_percent * 100:.2f}% "
+             f"sec (is {read_rrvalue} sec)")
 
     @balder.parametrize_by_feature('bpm_setting', (HeartRateSensor, 'config', 'test_update_time_for'))
     @balder.parametrize_by_feature("with_noice", (HeartRateSensor, 'config', 'test_noise_with_snr_of'))
@@ -102,79 +112,77 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
         start_time = time.perf_counter()
         self.HeartRateGiver.heart.start(bpm=start_bpm, add_noise_with_snr_of=with_noice)
 
-        try:
-            rr_over_history = []
-            self.HeartRateHost.reader.prepare()
+        rr_over_history = []
 
-            while (time.perf_counter() - start_time) < timeout_sec:
-                current_rr_sec = self.HeartRateHost.reader.read_last_rr_value_in_sec()
-                rr_over_history.append((time.perf_counter(), current_rr_sec))
-                if expected_min_start_rr <= current_rr_sec <= expected_max_start_rr:
-                    # value reached
-                    __start_rr_reached_at_timestamp = time.perf_counter()
-                    break
+        while (time.perf_counter() - start_time) < timeout_sec:
+            current_rr_sec = self.HeartRateHost.reader.read_last_rr_value_in_sec()
+            rr_over_history.append((time.perf_counter(), current_rr_sec))
+            if expected_min_start_rr <= current_rr_sec <= expected_max_start_rr:
+                # value reached
+                __start_rr_reached_at_timestamp = time.perf_counter()
+                break
+        else:
+            raise TimeoutError(
+                f'unable to detect start rr of {expected_start_rr_sec} (+/-{allowed_dev_percent*100:.2f}%) '
+                f'in reader within {timeout_sec} seconds')
 
-            else:
-                raise TimeoutError(
-                    f'unable to detect start rr of {expected_start_rr_sec} (+/-{allowed_dev_percent*100:.2f}%) '
-                    f'in reader within {timeout_sec} seconds')
-            time.sleep(time_to_wait_when_reached_sec)
+        logger.info(f'wait for {time_to_wait_when_reached_sec} seconds to make sure that new BPM stays constant')
+        time.sleep(time_to_wait_when_reached_sec)
 
-            change_time = time.perf_counter()
-            self.HeartRateGiver.heart.start(bpm=end_bpm, add_noise_with_snr_of=with_noice)
-            while (time.perf_counter() - start_time) < timeout_sec:
-                current_rr_sec = self.HeartRateHost.reader.read_last_rr_value_in_sec()
-                rr_over_history.append((time.perf_counter(), current_rr_sec))
-                if expected_min_end_rr <= current_rr_sec <= expected_max_end_rr:
-                    # value reached
-                    end_rr_reached_at_timestamp = time.perf_counter()
-                    break
-            else:
-                raise TimeoutError(
-                    f'unable to detect end RR of {expected_end_rr_sec} (+/-{allowed_dev_percent*100:.2f}%) '
-                    f'in reader within {timeout_sec} seconds - received: {rr_over_history}'
-                )
+        change_time = time.perf_counter()
+        self.HeartRateGiver.heart.start(bpm=end_bpm, add_noise_with_snr_of=with_noice)
+        while (time.perf_counter() - start_time) < timeout_sec:
+            current_rr_sec = self.HeartRateHost.reader.read_last_rr_value_in_sec()
+            rr_over_history.append((time.perf_counter(), current_rr_sec))
+            if expected_min_end_rr <= current_rr_sec <= expected_max_end_rr:
+                # value reached
+                end_rr_reached_at_timestamp = time.perf_counter()
+                break
+        else:
+            raise TimeoutError(
+                f'unable to detect end RR of {expected_end_rr_sec} (+/-{allowed_dev_percent*100:.2f}%) '
+                f'in reader within {timeout_sec} seconds - received: {rr_over_history}'
+            )
 
-            update_time = end_rr_reached_at_timestamp - change_time
-            assert update_time < self.HeartRateSensor.config.max_rr_change_update_time_sec, \
-                (f"time to update RR values for {start_bpm}bpm to {end_bpm}bpm needed {update_time} seconds "
-                 f"(expectation was below {self.HeartRateSensor.config.max_rr_change_update_time_sec} seconds)")
+        update_time = end_rr_reached_at_timestamp - change_time
+        assert update_time < self.HeartRateSensor.config.max_rr_change_update_time_sec, \
+            (f"time to update RR values for {start_bpm}bpm to {end_bpm}bpm needed {update_time} seconds "
+             f"(expectation was below {self.HeartRateSensor.config.max_rr_change_update_time_sec} seconds)")
 
-            time.sleep(time_to_wait_when_reached_sec)
+        logger.info(f'wait for {time_to_wait_when_reached_sec} seconds to make sure that new BPM stays constant')
+        time.sleep(time_to_wait_when_reached_sec)
 
-            # TODO validate history -> should not go down and stay within the allowed range
-            constant_with_start_rr = [
-                rr for ts, rr in rr_over_history
-                if start_time + self.HeartRateSensor.config.max_rr_change_update_time_sec < ts < change_time
-            ]
+        # TODO validate history -> should not go down and stay within the allowed range
+        constant_with_start_rr = [
+            rr for ts, rr in rr_over_history
+            if start_time + self.HeartRateSensor.config.max_rr_change_update_time_sec < ts < change_time
+        ]
 
-            assert len(constant_with_start_rr) > 0, "received nothing after set start bpm"
+        assert len(constant_with_start_rr) > 0, "received nothing after set start bpm"
 
-            assert expected_min_start_rr <= min(constant_with_start_rr) <= expected_max_start_rr, \
-                (f"detect some RR after the start bpm should be detected constantly that are not within the expected "
-                 f"range of {expected_min_start_rr}-{expected_max_start_rr} sec "
-                 f"({expected_start_rr_sec} +/-{allowed_dev_percent*100:.2f}%): {constant_with_start_rr}")
+        assert expected_min_start_rr <= min(constant_with_start_rr) <= expected_max_start_rr, \
+            (f"detect some RR after the start bpm should be detected constantly that are not within the expected "
+             f"range of {expected_min_start_rr}-{expected_max_start_rr} sec "
+             f"({expected_start_rr_sec} +/-{allowed_dev_percent*100:.2f}%): {constant_with_start_rr}")
 
-            assert expected_min_start_rr <= max(constant_with_start_rr) <= expected_max_start_rr, \
-                (f"detect some RR after the start bpm should be detected constantly that are not within the expected "
-                 f"range of {expected_min_start_rr}-{expected_max_start_rr} "
-                 f"({expected_start_rr_sec} +/-{allowed_dev_percent * 100:.2f}%): {constant_with_start_rr}")
+        assert expected_min_start_rr <= max(constant_with_start_rr) <= expected_max_start_rr, \
+            (f"detect some RR after the start bpm should be detected constantly that are not within the expected "
+             f"range of {expected_min_start_rr}-{expected_max_start_rr} "
+             f"({expected_start_rr_sec} +/-{allowed_dev_percent * 100:.2f}%): {constant_with_start_rr}")
 
-            constant_with_end_rr = [
-                rr for ts, rr in rr_over_history
-                if change_time + self.HeartRateSensor.config.max_rr_change_update_time_sec < ts
-            ]
+        constant_with_end_rr = [
+            rr for ts, rr in rr_over_history
+            if change_time + self.HeartRateSensor.config.max_rr_change_update_time_sec < ts
+        ]
 
-            assert len(constant_with_end_rr) > 0, "received nothing after set end bpm"
+        assert len(constant_with_end_rr) > 0, "received nothing after set end bpm"
 
-            assert expected_min_end_rr <= min(constant_with_end_rr) <= expected_max_end_rr, \
-                (f"detect some RR after the end bpm should be detected constantly that are not within the expected "
-                 f"range of {expected_min_end_rr}-{expected_max_end_rr} "
-                 f"({expected_end_rr_sec} +/-{allowed_dev_percent*100:.2f}%): {constant_with_end_rr}")
+        assert expected_min_end_rr <= min(constant_with_end_rr) <= expected_max_end_rr, \
+            (f"detect some RR after the end bpm should be detected constantly that are not within the expected "
+             f"range of {expected_min_end_rr}-{expected_max_end_rr} "
+             f"({expected_end_rr_sec} +/-{allowed_dev_percent*100:.2f}%): {constant_with_end_rr}")
 
-            assert expected_min_end_rr <= max(constant_with_end_rr) <= expected_max_end_rr, \
-                (f"detect some RR after the end bpm should be detected constantly that are not within the expected "
-                 f"range of {expected_min_end_rr}-{expected_max_end_rr} "
-                 f"({expected_end_rr_sec} +/-{allowed_dev_percent * 100:.2f}%): {constant_with_end_rr}")
-        finally:
-            self.HeartRateHost.reader.cleanup()
+        assert expected_min_end_rr <= max(constant_with_end_rr) <= expected_max_end_rr, \
+            (f"detect some RR after the end bpm should be detected constantly that are not within the expected "
+             f"range of {expected_min_end_rr}-{expected_max_end_rr} "
+             f"({expected_end_rr_sec} +/-{allowed_dev_percent * 100:.2f}%): {constant_with_end_rr}")

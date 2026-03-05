@@ -47,7 +47,18 @@ class ScenarioAwakeningTiming(BaseScenarioEnv):
         yield from self.HeartRateSensor.strap.fixt_make_sure_to_be_not_attached(restore_entry_state=False)
 
     @balder.fixture('testcase')
-    def make_sure_to_be_not_active_anymore(self, make_sure_has_no_skin_contact):  # pylint: disable=unused-argument
+    def prepare_activity_feature(self):
+        """prepares the activity feature for checking its activity"""
+        self.HeartRateHost.activity.prepare()
+        yield
+        self.HeartRateHost.activity.cleanup()
+
+    @balder.fixture('testcase')
+    def make_sure_to_be_not_active_anymore(
+            self,
+            make_sure_has_no_skin_contact,
+            prepare_activity_feature
+    ):  # pylint: disable=unused-argument
         """fixture that ensures that sensor is not active before every testcase"""
         timeout = self.HeartRateSensor.config.time_to_sleep_after_skin_contact_loss
         self.HeartRateHost.activity.wait_to_be_inactive(timeout_sec=timeout)
