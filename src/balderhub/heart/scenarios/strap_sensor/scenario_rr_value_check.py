@@ -52,6 +52,22 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
         self.HeartRateHost.reader.prepare()
         yield
         self.HeartRateHost.reader.cleanup()
+        
+    @balder.fixture('variation')
+    def wait_for_first_valid_rr_beat(
+            self,
+            make_sure_has_skin_contact,
+            make_sure_device_powered_on,
+            heart_started
+    ):  # pylint: disable=unused-argument
+        """waits for the first valid rr value to sync (for a valid rr beat, we need more than two recorded beats)"""
+        timeout = 30 # TODO define in config - needed for start-up behavior test anyway
+        start_time = time.perf_counter()
+        while (time.perf_counter() - start_time) < timeout:
+            if self.HeartRateHost.reader.read_last_rr_value_in_sec() is not None:
+                break
+        else:
+            raise TimeoutError(f'unable to detect first heart beat within {timeout} seconds')
 
     @balder.parametrize_by_feature("bpm", (HeartRateSensor, 'config', 'test_accuracy_of_bpms_for'))
     @balder.parametrize_by_feature("with_noice", (HeartRateSensor, 'config', 'test_noise_with_snr_of'))
@@ -71,7 +87,7 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
         expected_max_rr = expected_rr_value_sec * (1 + allowed_dev_percent)
 
         time.sleep(self.HeartRateSensor.config.max_rr_change_update_time_sec)
-        read_rrvalue = self.HeartRateHost.reader.read_last_rr_value_in_sec()
+        read_rrvalue = self.HeartRateHost.reader.wait_for_next_rr_value_in_sec()
 
         assert expected_min_rr < read_rrvalue < expected_max_rr, \
             (f"the updated rr was not established after {self.HeartRateSensor.config.max_rr_change_update_time_sec}"
@@ -115,7 +131,7 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
         rr_over_history = []
 
         while (time.perf_counter() - start_time) < timeout_sec:
-            current_rr_sec = self.HeartRateHost.reader.read_last_rr_value_in_sec()
+            current_rr_sec = self.HeartRateHost.reader.wait_for_next_rr_value_in_sec()
             rr_over_history.append((time.perf_counter(), current_rr_sec))
             if expected_min_start_rr <= current_rr_sec <= expected_max_start_rr:
                 # value reached
@@ -132,7 +148,7 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
         change_time = time.perf_counter()
         self.HeartRateGiver.heart.start(bpm=end_bpm, add_noise_with_snr_of=with_noice)
         while (time.perf_counter() - start_time) < timeout_sec:
-            current_rr_sec = self.HeartRateHost.reader.read_last_rr_value_in_sec()
+            current_rr_sec = self.HeartRateHost.reader.wait_for_next_rr_value_in_sec()
             rr_over_history.append((time.perf_counter(), current_rr_sec))
             if expected_min_end_rr <= current_rr_sec <= expected_max_end_rr:
                 # value reached
