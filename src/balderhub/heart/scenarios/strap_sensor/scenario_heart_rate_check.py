@@ -96,8 +96,8 @@ class ScenarioHeartRateCheck(BaseScenarioEnv):
         expected_min_start_bpm = start_bpm * (1 - allowed_dev_percent)
         expected_max_start_bpm = start_bpm * (1 + allowed_dev_percent)
         end_bpm = bpm_setting.end_bpm
-        expected_min_end_bpm = start_bpm * (1 - allowed_dev_percent)
-        expected_max_end_bpm = start_bpm * (1 + allowed_dev_percent)
+        expected_min_end_bpm = end_bpm * (1 - allowed_dev_percent)
+        expected_max_end_bpm = end_bpm * (1 + allowed_dev_percent)
 
         timeout_sec = bpm_setting.max_update_time_sec * 3
 
