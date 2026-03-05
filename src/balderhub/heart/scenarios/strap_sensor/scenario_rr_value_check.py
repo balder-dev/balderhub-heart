@@ -150,7 +150,7 @@ class ScenarioRRValueCheck(BaseScenarioEnv):
 
         change_time = time.perf_counter()
         self.HeartRateGiver.heart.start(bpm=end_bpm, add_noise_with_snr_of=with_noice)
-        while (time.perf_counter() - start_time) < timeout_sec:
+        while (time.perf_counter() - change_time) < timeout_sec:
             current_rr_sec = self.HeartRateHost.reader.wait_for_next_rr_value_in_sec()
             rr_over_history.append((time.perf_counter(), current_rr_sec))
             if expected_min_end_rr <= current_rr_sec <= expected_max_end_rr:
